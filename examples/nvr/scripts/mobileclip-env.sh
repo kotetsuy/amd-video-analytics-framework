@@ -8,7 +8,7 @@ fi
 # Do not inherit EmbeddingGemma/PyTorch paths. Besides HIP aliases, Torch's
 # bundled libtinfo can break the Vitis AI provider's system libncurses dependency.
 # Keep the framework's rootless dependencies, then let Ryzen AI add its own paths.
-export LD_LIBRARY_PATH="$ROCM_PATH/lib:$ROCM_PATH/lib/migraphx/lib:$AMDVA_ROOT/build:$AMDVA_ROOT/.deps/prefix/lib:$AMDVA_ROOT/.deps/sysroot/usr/lib/x86_64-linux-gnu"
+export LD_LIBRARY_PATH="$AMDVA_MIGRAPHX_ROOT/lib:$AMDVA_MIGRAPHX_ROOT/lib/migraphx/lib:$ROCM_PATH/lib:$ROCM_PATH/lib/migraphx/lib:$AMDVA_ROOT/build:$AMDVA_ROOT/.deps/prefix/lib:$AMDVA_ROOT/.deps/sysroot/usr/lib/x86_64-linux-gnu"
 source /opt/xilinx/xrt/setup.sh || return 1
 source "$1/bin/activate" || return 1
 # Keep the framework HIP/HSA runtime ahead of provider dependencies. No PyTorch HIP aliases.

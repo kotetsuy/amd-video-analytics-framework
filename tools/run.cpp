@@ -1,4 +1,5 @@
 #include "amdva/runtime.hpp"
+#include "amdva/inference.hpp"
 #include <gst/gst.h>
 #include <gst/analytics/analytics.h>
 #include <gst/video/video.h>
@@ -99,7 +100,7 @@ int main(int argc,char** argv) {
     if(stop_audit)stop_audit();
     const auto seconds=std::chrono::duration<double>(std::chrono::steady_clock::now()-started).count();
     const bool passed=!failed && eos && audit.input>0 && audit.input==audit.output && audit.violations==0 && audit.pending.empty();
-    const bool copy_passed=errors && copies && bytes && errors()==0 && copies()==audit.output && bytes()==audit.output*7204;
+    const bool copy_passed=errors && copies && bytes && errors()==0 && copies()==audit.output && bytes()==audit.output*amdva::detection_readback_bytes;
     std::cout<<"{\"schema\":1,\"dlstreamer\":"<<(dlstreamer?"true":"false")<<",\"frames_in\":"<<audit.input
         <<",\"frames_out\":"<<audit.output<<",\"detections\":"<<audit.detections<<",\"identity_violations\":"<<audit.violations
         <<",\"fps\":"<<(seconds?audit.output/seconds:0)<<",\"p95_ms\":"<<percentile(audit.latency,0.95)
