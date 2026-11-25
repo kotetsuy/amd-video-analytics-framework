@@ -97,7 +97,9 @@ def main():
         run(*command, build, DEPS / "src" / f"{name}-1.28.2", f"--prefix={DEPS}/prefix", "--libdir=lib", *options, env=env)
         run("meson", "compile", "-C", build, "-j", args.jobs, env=env)
         run("meson", "install", "-C", build, env=env)
-    run("cmake", "-S", ROOT, "-B", ROOT / "build", f"-DAMDVA_ROCM_ROOT={env['AMDVA_ROCM_ROOT']}", f"-DAMDVA_MIGRAPHX_ROOT={env['AMDVA_MIGRAPHX_ROOT']}",
+    run("cmake", "-S", ROOT, "-B", ROOT / "build", "-UAMDVA_HIP_INCLUDE", "-UHIP_LIBRARY",
+        "-UHIPRTC_LIBRARY", "-UMIGRAPHX_INCLUDE", "-UMIGRAPHX_C_LIBRARY",
+        f"-DAMDVA_ROCM_ROOT={env['AMDVA_ROCM_ROOT']}", f"-DAMDVA_MIGRAPHX_ROOT={env['AMDVA_MIGRAPHX_ROOT']}",
         f"-DCMAKE_PREFIX_PATH={DEPS}/sysroot/usr", "-DCMAKE_BUILD_TYPE=RelWithDebInfo", f"-DCMAKE_INSTALL_PREFIX={DEPS}/prefix", env=env)
     run("cmake", "--build", ROOT / "build", "-j", args.jobs, env=env)
     run("ctest", "--test-dir", ROOT / "build", "--output-on-failure", env=env)

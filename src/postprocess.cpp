@@ -3,7 +3,7 @@
 #include <cmath>
 #include <cstring>
 namespace {
-constexpr unsigned limit = 300;
+constexpr unsigned limit = amdva::detection_limit;
 struct Candidate {
     amdva::Detection box;
     unsigned index;
@@ -12,6 +12,7 @@ struct Detections {
     unsigned count;
     Candidate items[limit];
 };
+static_assert(sizeof(Detections) == amdva::detection_readback_bytes);
 struct TopK {
     unsigned count;
     amdva::Classification items[100];

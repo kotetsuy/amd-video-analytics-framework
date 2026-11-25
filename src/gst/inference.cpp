@@ -95,7 +95,7 @@ static GstFlowReturn transform(GstBaseTransform* t,GstBuffer* buffer) {
             if(!gst_analytics_relation_meta_set_relation(analytics,GST_ANALYTICS_REL_TYPE_RELATE_TO,od.id,descriptor.id))
                 throw std::runtime_error("Cannot relate detection to class descriptor");
         }
-        GST_LOG_OBJECT(s,"detections=%zu, compact readback=%zu bytes",detected.size(),size_t(7204));
+        GST_LOG_OBJECT(s,"detections=%zu, compact readback=%zu bytes",detected.size(),amdva::detection_readback_bytes);
         gst_buffer_remove_meta(buffer,&meta->meta);return GST_FLOW_OK;
     } catch(const std::exception& e) {
         (void)hipDeviceSynchronize();

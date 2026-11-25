@@ -5,6 +5,10 @@ struct Detection {
     float x, y, w, h, score;
     int class_id;
 };
+// Compact GPU postprocessing result: count followed by indexed candidates.
+inline constexpr unsigned detection_limit = 300;
+inline constexpr size_t detection_readback_bytes =
+    sizeof(unsigned) + detection_limit * (sizeof(Detection) + sizeof(unsigned));
 class BatchEngine {
   public:
     BatchEngine(const std::string &model, const std::string &info, unsigned batch, int device = 0);

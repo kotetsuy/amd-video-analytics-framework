@@ -1,5 +1,20 @@
 # Ubuntu 26.04 / ROCm 10.1 対応の進捗
 
+## ROCm 10.2 の追加検証（2026-11-25）
+
+- Ryzen AI MAX+ 395 / Radeon 8060S（gfx1151）、Ubuntu 26.04、ROCm `/opt/rocm/core-10.2` で別ディレクトリに全ターゲットをビルドした。通常の契約テスト 29 件はすべて通過した（publication テストはソケットを使うためサンドボックス外で実行）。
+- `amdva-probe` は VA/HIP のエクスポート、エイリアス、VPE の検査に合格した。
+- 既存の MIGraphX `rocm-10.1` ビルドを用いて OSNet ReID モデルを ROCm 10.2 上で再コンパイルし、HEVC の VA デコード、ROI 前処理、GPU 推論を `amdva-reid-validate` で確認した。バッチサイズ 1、コピー監査違反 0 件、バッチ結果の最小 cosine 類似度 1.00。
+- 上記 ReID の検証は既存の 10.1 版 MIGraphX を使った結果。検出を含む映像解析パイプライン全体は未検証。
+- AMD 公式の Ubuntu 26.04 パッケージ MIGraphX 2.19.0-1（ROCm 10.2 依存）を `.deps/migraphx-official-rocm102` に展開し、配置した。このリポジトリ内の展開を用いて検証した。ROCm 10.2 と公式 MIGraphX を使った別ビルドでは、ハードウェアテストを含む 37 件の CTest が通過した。
+- 公式 MIGraphX 2.19.0 で OSNet を再コンパイルし、`amdva-reid-validate` による HEVC デコード、ROI 前処理、GPU 推論に合格した。バッチサイズ 1、コピー監査違反 0 件、バッチ結果の最小 cosine 類似度 1.00。
+- システムにインストールされた公式 MIGraphX 2.19.0-1 の `/opt/rocm/extras-10` を既定に変更し、通常の `build/` を再構成した。同じ ReID モデルの推論とコピー監査に合格した。
+- YOLO11m の FP32 モデルは `MIOPEN_FIND_MODE=FAST` で公式 MIGraphX 2.19.0 向けに再コンパイルできた。初回の `amdva-run` はコピー監査ライブラリがローカルにロードされた libva の関数を解決できず、VA サーフェス作成時に停止した。監査ライブラリが依存先を明示するよう修正した。監査なしの H.264 デコード単体は正常だったが、以前の「監査付きデコード単体も通過」という記録は誤りだった。
+- 修正後の `amdva-run` は H.264 32 フレームすべてを処理し、検出 251 件、バッファー同一性違反 0 件、コピー監査違反 0 件、`pipeline_zero_copy_verified=true` を確認した。検証ツールの読み戻しサイズも現在の検出メタデータ形式に合わせて修正した。
+- 同じ新モデルと 1080p/30fps H.264 動画をローカル RTSP で配信し、単一ストリームの `amdva-streams` を 20 秒間実行した。最終状態は live 1、recording 1、AI カウント 18。コピー監査は実施しておらず、複数ストリームや長時間の安定性は未検証。
+- 同じ単一ストリーム構成をコピー監査付きで 30 秒間再実行した。モデルのウォームアップ後、live と AI の処理開始を確認して監査を開始し、AI カウントは 1 から 28 に増加した。監査されたコピーは 56 件、137,860,912 バイトで、禁止されたコピーや画像操作の違反は 0 件。GPU 内コピーと明示されたメタデータ転送は監査上許可される。これはヘッドレス実行の結果であり、表示経路や複数ストリームの監査ではない。
+- `start_all.sh` は公式 MIGraphX 2.19.0 で再コンパイルした検出・ReID モデルを使用し、起動前にモデルとマニフェストの SHA-256 を照合する。NPU 環境設定にもシステム MIGraphX のライブラリパスを保持する。実際に 16 ストリームを 35 秒間起動し、NVR と RTSP サーバーが稼働し、16 ソースすべての録画ファイルが作られたことを確認して停止した。NPU 推論の結果そのものはこの短時間検証では確認していない。
+
 更新日: 2026-11-12
 
 ## 現在の状態
@@ -34,8 +49,8 @@ YOLO のモデルと設定は `artifacts/video-demo/`、ReID は `artifacts/reid
 ## 変更内容
 
 - `dependencies.lock.json` の Ubuntu パッケージを 26.04（resolute）向けに更新し、GLib、EGL、Qt などの依存関係を追加した。GStreamer は 1.28.2 のまま。
-- `scripts/bootstrap.py` は固定パッケージの展開、pkg-config パスの調整、GStreamer と本体のビルドを行う。ROCm と MIGraphX は自動インストールしない。
-- `scripts/env.sh` と CMake の ROCm 既定パスは `/opt/rocm/core-10.1`。MIGraphX の既定パスは `.deps/migraphx`。それぞれ `AMDVA_ROCM_ROOT`、`AMDVA_MIGRAPHX_ROOT` で変更できる。
+- `scripts/bootstrap.py` は固定パッケージの展開、pkg-config パスの調整、GStreamer と本体のビルドを行う。ROCm と MIGraphX はシステムに別途必要。
+- `scripts/env.sh` と CMake の ROCm 既定パスは `/opt/rocm/core-10.2`。MIGraphX の既定パスは `/opt/rocm/extras-10`。それぞれ `AMDVA_ROCM_ROOT`、`AMDVA_MIGRAPHX_ROOT` で変更できる。
 - Ubuntu 26.04 のコンパイラーに対応するため、同梱 DL Streamer のヘッダーに `<cstdint>` を追加した。
 - README とインストールガイドの日英両方を更新した。
 

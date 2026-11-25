@@ -26,7 +26,7 @@ for f in "$SERVER" "$NVR" "$BASE" "$LIST"; do
     [[ -f "$f" ]] || { echo "必要なファイルがありません: $f" >&2; exit 1; }
 done
 python3 - "$BASE" "$LIST" "$RUN/config.json" "$DEMO" <<'PY'
-import json, pathlib, sys
+import hashlib, json, pathlib, sys
 base, listing, output, demo = map(pathlib.Path, sys.argv[1:])
 c = json.loads(base.read_text())
 files = [line.strip() for line in listing.read_text().splitlines() if line.strip() and not line.lstrip().startswith('#')]
@@ -38,12 +38,25 @@ for i, (f, src) in enumerate(zip(files, c['sources'])):
     if not p.is_file(): raise SystemExit(f'動画がありません: {p}')
     if src.get('uri') != f'rtsp://127.0.0.1:18558/cam{i}':
         raise SystemExit(f'RTSP URL が一覧と一致しません: {src.get("uri")}')
+c['model'] = c['single_model'] = str(demo / 'amdva-yolo11m-rocm102-migraphx219.mxr')
+if c.get('search', {}).get('reid_model'):
+    c['search']['reid_model'] = str(demo.parent / 'reid-model/osnet-x1-msmt17-rocm102-migraphx219.mxr')
 for field in ('model', 'single_model', 'model_info'):
     if c.get(field):
         p = pathlib.Path(c[field])
         if not p.is_absolute(): p = base.parent / p
         if not p.is_file(): raise SystemExit(f'モデル関連ファイルがありません: {p}')
         c[field] = str(p.resolve())
+models = {c['model'], c['single_model']}
+if c.get('search', {}).get('reid_model'):
+    models.add(c['search']['reid_model'])
+for model in models:
+    p = pathlib.Path(model)
+    manifest = pathlib.Path(str(p) + '.manifest.json')
+    if not p.is_file() or not manifest.is_file():
+        raise SystemExit(f'コンパイル済みモデルまたはマニフェストがありません: {p}')
+    if hashlib.file_digest(p.open('rb'), 'sha256').hexdigest() != json.loads(manifest.read_text()).get('sha256'):
+        raise SystemExit(f'モデルの SHA-256 がマニフェストと一致しません: {p}')
 # The GUI clears its recording root at startup; a fresh directory preserves prior runs.
 import datetime
 c['recording_root'] = str(demo / 'recordings' / (datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')))
